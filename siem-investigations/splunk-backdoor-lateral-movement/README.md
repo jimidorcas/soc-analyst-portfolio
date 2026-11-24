@@ -2,12 +2,12 @@
 
 **Platform:** TryHackMe – *Investigating with Splunk*  
 **Tools Used:** Splunk Enterprise, Windows Event Logs, Sysmon, CyberChef  
-**MITRE ATT&CK Techniques:** T1136.001 (Create Account: Local Account), T1047 (Windows Management Instrumentation), T1036.005 (Masquerading), T1059.001 (Command and Scripting Interpreter: PowerShell), T1027 (Obfuscated Files or Information)
+**MITRE ATT&CK Techniques:** T1136.001 (Create Account: Local Account), T1047 (Windows Management Instrumentation), T1036.005 (Masquerading), T1059.001 (Command and Scripting Interpreter: PowerShell), T1027 (Obfuscated Files or Information), T1562.001 (Impair Defenses: Disable or Modify Tools)
 
 ---
 
 ## 1. Executive Summary
-During a threat-hunting investigation using Splunk on ingested Windows Security, Sysmon, and PowerShell logs, unauthorized administrative activity was uncovered across multiple network hosts. The adversary executed remote `WMIC` commands to create a typosquatted backdoor user account, modified the SAM registry hive for persistence, attempted authentication using the rogue account, and executed a Base64-encoded PowerShell payload on a secondary host to initiate an external web request.
+During a threat-hunting investigation using Splunk on ingested Windows Security, Sysmon, and PowerShell logs, unauthorized administrative activity was uncovered across multiple network hosts. The adversary executed remote `WMIC` commands to create a typosquatted backdoor user account (`A1berto`), modified the SAM registry hive for persistence, and executed a multi-stage Base64-encoded PowerShell payload on `James.browne` that bypassed AMSI/Script Block Logging and initiated an outbound HTTP request to `hxxp[://]10[.]10[.]10[.]5/news[.]php`.
 
 ---
 
@@ -18,27 +18,27 @@ To identify newly created accounts, Windows Security logs were filtered for **Ev
 ```splunk
 index="main" EventID=4720
 ```
-* **Findings:** A rogue local account (`[Backdoor Username]`) was created to impersonate legitimate user `[Impersonated Username]`.
-* **Authentication Audit:** Querying logon events (**Event ID 4624 / 4625**) revealed `[Number of Login Attempts]` authentication attempt(s) utilizing the backdoor account.
+* **Findings:** A rogue local account (`A1berto`) was created using homoglyph substitution (swapping `1` for `l`) to impersonate legitimate user `Alberto`.
+* **Authentication Audit:** Querying logon events (`index="main" (EventID=4624 OR EventID=4625) A1berto`) confirmed `0` authentication attempts using the backdoor account, indicating it was staged strictly for persistence.
 
 ### Phase 2: Registry Persistence & Remote Execution (WMIC)
 Querying Sysmon **Event ID 13** (*Registry value set*) and **Event ID 1** (*Process Creation*) exposed how the account was provisioned remotely:
 ```splunk
-index="main" (EventID=1 OR EventID=13) [Backdoor Username]
+index="main" (EventID=1 OR EventID=13) A1berto
 ```
-* **Registry Modification:** `TargetObject` confirmed updates to `[Full Registry Key Path]`.
-* **Lateral Movement Command:** `WMIC.exe` was invoked remotely to add the user:
+* **Registry Modification:** `TargetObject` confirmed updates to `HKLM\SAM\SAM\Domains\Account\Users\Names\A1berto` (and its corresponding RID key) to store the new account in the local Security Account Manager database.
+* **Lateral Movement Command:** `WMIC.exe` was invoked remotely against `WORKSTATION6` to add the user:
   ```cmd
-  [Full WMIC CommandLine String]
+  C:\Windows\System32\wbem\WMIC.exe /node:WORKSTATION6 process call create "net user /add A1berto paw0rd1"
   ```
 
-### Phase 3: Malicious PowerShell Execution & Payload Decoding
-Pivoting to investigate execution activity across endpoints revealed suspicious PowerShell usage on host `[Infected Hostname]`.
+### Phase 3: Malicious PowerShell Execution & Two-Stage Payload Decoding
+Pivoting to PowerShell operational logs revealed suspicious execution activity on host `James.browne`.
 ```splunk
-index="main" source="*PowerShell*"
+index="main" EventID=4103
 ```
-* **Log Volume:** PowerShell Script Block Logging recorded `[Event Count]` total events associated with the malicious execution.
-* **Deobfuscation:** Inspecting the logged script blocks uncovered an encoded command. Decoding the Base64 payload via CyberChef (UTF-16LE) revealed an outbound web request to `[Defanged URL, e.g., hxxps://example[.]com/payload]`.
+* **Log Volume:** PowerShell Module Logging (`Event ID 4103`) recorded `79` total events associated with the malicious pipeline execution.
+* **Deobfuscation:** Inspecting the logged execution details uncovered an encoded command (`-enc`). Decoding the first UTF-16LE Base64 layer revealed a script designed to disable Script Block Logging and AMSI (`amsiInitFailed`), alongside a second nested Base64 string (`aAB0AHQAcAA6AC8ALwAxADAALgAxADAALgAxADAALgA1AA==`). Decoding the nested string revealed an outbound RC4-encrypted web request to `hxxp[://]10[.]10[.]10[.]5/news[.]php`.
 
 ---
 
@@ -46,18 +46,19 @@ index="main" source="*PowerShell*"
 
 | Indicator Type | Value | Context |
 | :--- | :--- | :--- |
-| **Rogue Username** | `[Backdoor Username]` | Typosquatted account impersonating `[Impersonated Username]` |
-| **Registry Path** | `[Full Registry Key Path]` | SAM database modification for local account persistence |
-| **WMIC Command** | `[CommandLine Snippet]` | Remote user creation via `WMIC.exe` |
-| **Compromised Host** | `[Infected Hostname]` | Endpoint executing obfuscated PowerShell |
-| **Malicious URL** | `[Defanged URL]` | External payload/C2 destination decoded from Base64 |
+| **Rogue Username** | `A1berto` | Typosquatted local account impersonating `Alberto` |
+| **Registry Path** | `HKLM\SAM\SAM\Domains\Account\Users\Names\A1berto` | SAM database modification for local account persistence |
+| **WMIC Command** | `C:\Windows\System32\wbem\WMIC.exe /node:WORKSTATION6 process call create "net user /add A1berto paw0rd1"` | Remote user creation via `WMIC.exe` |
+| **Compromised Host** | `James.browne` | Endpoint executing obfuscated PowerShell (`EventID=4103`) |
+| **Malicious URL** | `hxxp[://]10[.]10[.]10[.]5/news[.]php` | External payload/C2 destination decoded from nested Base64 |
 
 ---
 
 ## 4. Detection & Remediation Recommendations
-1. **Account & Host Containment:** Remove `[Backdoor Username]`, force password resets for `[Impersonated Username]`, and isolate `[Infected Hostname]` for full malware triage.
-2. **Network Blocking:** Block outbound traffic to `[Defanged URL]` at the perimeter firewall/proxy and inspect DNS/proxy logs for any other internal hosts communicating with this domain.
+1. **Account & Host Containment:** Delete the unauthorized `A1berto` local account across affected endpoints, force a password reset for `Alberto`, and isolate `James.browne` and `WORKSTATION6` for full forensic triage.
+2. **Network Blocking:** Block outbound traffic to `10.10.10.5` at the perimeter firewall/proxy and inspect proxy/DNS logs for any other internal hosts communicating with this IP.
 3. **SIEM Detection Rules:**
-   * Alert on Windows Event ID `4720` outside approved change windows.
-   * Alert on `WMIC.exe` spawning remote `/node:` processes with `net user`.
-   * Alert on PowerShell (`Event ID 4104`) containing `-EncodedCommand`, `-enc`, or `FromBase64String`.
+   * Alert on Windows Security `EventID=4720` outside approved IT provisioning windows.
+   * Alert on Sysmon `EventID=1` where `Image="*\\WMIC.exe"` and `CommandLine="*/node:*"` paired with `net user` or `/add`.
+   * Alert on PowerShell Module/Script Block logs (`EventID=4103` or `EventID=4104`) containing `-EncodedCommand`, `-enc`, `amsiInitFailed`, or `FromBase64String`.
+
