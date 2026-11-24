@@ -30,4 +30,4 @@ soc-analyst-portfolio/
 ---
 
 ## Connect With Me
-* **LinkedIn:** 
+
