@@ -65,5 +65,5 @@ index="main" EventID=4103
 ---
 
 ## 5. Mission Debrief
-For a summary of key investigation wins, methodology takeaways, and areas for improvement from this lab, view the [Post-Incident Mission Debrief](./debrief).
+For a summary of key investigation wins, methodology takeaways, and areas for improvement from this lab, view the [Post-Incident Mission Debrief](./debrief)
 
