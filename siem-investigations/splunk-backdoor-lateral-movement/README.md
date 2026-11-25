@@ -62,3 +62,8 @@ index="main" EventID=4103
    * Alert on Sysmon `EventID=1` where `Image="*\\WMIC.exe"` and `CommandLine="*/node:*"` paired with `net user` or `/add`.
    * Alert on PowerShell Module/Script Block logs (`EventID=4103` or `EventID=4104`) containing `-EncodedCommand`, `-enc`, `amsiInitFailed`, or `FromBase64String`.
 
+---
+
+## 5. Mission Debrief
+For a summary of key investigation wins, methodology takeaways, and areas for improvement from this lab, view the [Post-Incident Mission Debrief](./debrief).
+
