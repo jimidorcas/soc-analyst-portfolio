@@ -24,7 +24,7 @@ Get-WinEvent -Path "C:\Users\THM-Analyst\Desktop\Scenarios\Practice\Filtering.ev
 * **Baseline Event ID 3 Volume:** `73,591` network connection events
 * **Earliest Event UTC Timestamp:** `2021-01-06 01:35:50.464` (`svchost.exe` RDP connection to `10[.]10[.]98[.]207:3389`)
 
-![PowerShell Event ID 3 Noise Filtering](sreenshots/task4-filtering-noise.jpg)
+![PowerShell Event ID 3 Noise Filtering](Sreenshots/task4-filtering-noise.jpg)
 
 ---
 
