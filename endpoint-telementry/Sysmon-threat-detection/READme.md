@@ -40,7 +40,8 @@ Get-WinEvent -Path .\Investigation-1.evtx -FilterXPath '*/System/EventID=1' -Old
 * **Raw Disk Access Device (`Event ID 9`):** `\Device\HarddiskVolume3`
 * **Initial Executable Launched (`Event ID 1`):** `rundll32.exe` (spawned via `explorer.exe` following `WUDFHost.exe` driver initialization)
 
-![Investigation 1 RawAccessRead and Process Lineage](inv1-usb-rawaccess.png)
+![Investigation 1 RawAccessRead and Process Lineage](Screenshots/inv1-usb-rawaccess.jpg)
+![Investigation 1 Initial Executable rundll32.exe](Screenshots/inv1-usb-rundll32.jpg)
 
 ---
 
