@@ -55,8 +55,8 @@ Get-WinEvent -Path .\Investigation-2.evtx -FilterXPath '*/System/EventID=1 or */
 * **Signed LOLBin Executed (`Image`):** `C:\Windows\System32\mshta.exe`
 * **C2 Server IP & Port (`Event ID 3`):** `10[.]0[.]2[.]18` on port `4443`
 
-![Investigation 2 Mshta HTML Smuggling](inv2-mshta-smuggling.png)
-![Investigation 2 C2 Network Connection](inv2-c2-network.png)
+![Investigation 2 Mshta HTML Smuggling](Screenshots/inv2-mshta-smuggling.jpg)
+![Investigation 2 C2 Network Connection](Screenshots/inv2-c2-network.jpg)
 
 ---
 
@@ -74,7 +74,7 @@ Get-WinEvent -Path .\Investigation-3.1.evtx -FilterXPath '*/System/EventID=3' | 
   ```
 * **C2 Infrastructure (`Event ID 3`):** `172[.]30[.]1[.]253` (Hostname: `empirec2`)
 
-![Investigation 3.1 Sticky Keys and Registry Payload](inv3-1-sethc-persistence.png)
+![Investigation 3.1 Sticky Keys and Registry Payload](Screenshots/inv3-1-sethc-persistence.jpg)
 
 ---
 
@@ -92,7 +92,7 @@ Get-WinEvent -Path .\Investigation-3.2.evtx -FilterXPath '*/System/EventID=10' |
   ```
 * **Sensitive Process Accessed (`Event ID 10`):** `lsass.exe`
 
-![Investigation 3.2 Scheduled Task and Alternate Data Stream](inv3-2-schtasks-ads.png)
+![Investigation 3.2 Scheduled Task and Alternate Data Stream](Screenshots/inv3-2-schtasks-ads.jpg)
 
 ---
 
@@ -105,7 +105,7 @@ Get-WinEvent -Path .\Investigation-4.evtx -FilterXPath '*/System/EventID=3' | fl
 * **C2 Port:** `80` (TCP)
 * **C2 Framework Utilized:** `Empire` (`empirec2`)
 
-![Investigation 4 PowerShell Empire C2 Traffic](inv4-empire-c2.png)
+![Investigation 4 PowerShell Empire C2 Traffic](Screenshots/inv4-empire-c2.jpg)
 
 ---
 
